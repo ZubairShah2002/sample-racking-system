@@ -1,0 +1,30 @@
+# .NET
+bin/
+obj/
+*.user
+[Dd]ebug/
+[Rr]elease/
+artifacts/
+
+# Node / frontend
+node_modules/
+dist/
+dist-ssr/
+*.local
+.vite/
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+
+# Editors / OS
+.vs/
+.vscode/
+.idea/
+.DS_Store
+*.swp
+
+# Runtime
+storage/
+*.log
