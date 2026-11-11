@@ -79,8 +79,17 @@ internal sealed class RecordTestCommandHandler : ICommandHandler<RecordTestComma
         var now = _clock.UtcNow;
         var actor = string.IsNullOrWhiteSpace(_currentUser.Email) ? "system" : _currentUser.Email;
 
+        // Normalize the client-supplied testing date to UTC — PostgreSQL 'timestamptz'
+        // columns reject DateTimes with Kind=Unspecified (e.g. a date-only value).
+        var testingDate = request.TestingDate.Kind switch
+        {
+            DateTimeKind.Utc => request.TestingDate,
+            DateTimeKind.Local => request.TestingDate.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(request.TestingDate, DateTimeKind.Utc),
+        };
+
         sample.RecordTest(
-            request.TestingType, request.TestingStandard, request.TestingDate, actor, outcome,
+            request.TestingType, request.TestingStandard, testingDate, actor, outcome,
             request.Remarks, request.DefectDescription, request.PhotoEvidenceRef, request.ReportAttachmentRef, now);
 
         await _samples.UpdateAsync(sample, cancellationToken);

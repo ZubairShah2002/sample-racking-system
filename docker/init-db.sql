@@ -314,22 +314,31 @@ ALTER TABLE sample_tracking.disposal_records ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sample_tracking.notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sample_tracking.settings ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS tenant_isolation_rack_locations ON sample_tracking.rack_locations;
 CREATE POLICY tenant_isolation_rack_locations ON sample_tracking.rack_locations
     USING (tenant_id = shared.current_tenant_id() OR shared.current_tenant_id() IS NULL);
+DROP POLICY IF EXISTS tenant_isolation_samples ON sample_tracking.samples;
 CREATE POLICY tenant_isolation_samples ON sample_tracking.samples
     USING (tenant_id = shared.current_tenant_id() OR shared.current_tenant_id() IS NULL);
+DROP POLICY IF EXISTS tenant_isolation_sample_status_history ON sample_tracking.sample_status_history;
 CREATE POLICY tenant_isolation_sample_status_history ON sample_tracking.sample_status_history
     USING (tenant_id = shared.current_tenant_id() OR shared.current_tenant_id() IS NULL);
+DROP POLICY IF EXISTS tenant_isolation_sample_movements ON sample_tracking.sample_movements;
 CREATE POLICY tenant_isolation_sample_movements ON sample_tracking.sample_movements
     USING (tenant_id = shared.current_tenant_id() OR shared.current_tenant_id() IS NULL);
+DROP POLICY IF EXISTS tenant_isolation_testing_records ON sample_tracking.testing_records;
 CREATE POLICY tenant_isolation_testing_records ON sample_tracking.testing_records
     USING (tenant_id = shared.current_tenant_id() OR shared.current_tenant_id() IS NULL);
+DROP POLICY IF EXISTS tenant_isolation_sample_attachments ON sample_tracking.sample_attachments;
 CREATE POLICY tenant_isolation_sample_attachments ON sample_tracking.sample_attachments
     USING (tenant_id = shared.current_tenant_id() OR shared.current_tenant_id() IS NULL);
+DROP POLICY IF EXISTS tenant_isolation_disposal_records ON sample_tracking.disposal_records;
 CREATE POLICY tenant_isolation_disposal_records ON sample_tracking.disposal_records
     USING (tenant_id = shared.current_tenant_id() OR shared.current_tenant_id() IS NULL);
+DROP POLICY IF EXISTS tenant_isolation_notifications ON sample_tracking.notifications;
 CREATE POLICY tenant_isolation_notifications ON sample_tracking.notifications
     USING (tenant_id = shared.current_tenant_id() OR shared.current_tenant_id() IS NULL);
+DROP POLICY IF EXISTS tenant_isolation_settings ON sample_tracking.settings;
 CREATE POLICY tenant_isolation_settings ON sample_tracking.settings
     USING (tenant_id = shared.current_tenant_id() OR shared.current_tenant_id() IS NULL);
 
@@ -385,6 +394,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS ix_master_data_tenant_category_name
     ON sample_tracking.master_data_items (tenant_id, category, name);
 
 ALTER TABLE sample_tracking.master_data_items ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS tenant_isolation_master_data ON sample_tracking.master_data_items;
 CREATE POLICY tenant_isolation_master_data ON sample_tracking.master_data_items
     USING (tenant_id = shared.current_tenant_id() OR shared.current_tenant_id() IS NULL);
 
