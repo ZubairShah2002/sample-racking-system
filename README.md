@@ -90,6 +90,30 @@ npm run build      # type-check + production build
 
 ---
 
+## Deploy to the web (Render)
+
+This repo ships a **Render Blueprint** (`render.yaml`) that provisions everything —
+managed PostgreSQL, the .NET API (Docker), and the React frontend (static site) —
+and wires them together.
+
+1. Sign in at <https://dashboard.render.com> (connect your GitHub account).
+2. **New +** → **Blueprint** → select this repository → **Apply**.
+3. When prompted, set **`Seed__AdminPassword`** on the `samplerack-api` service
+   (or leave it and use the default `Admin@12345`, then change it on first login).
+4. Wait for all three resources to go live. Your public site is the
+   **`samplerack-web`** URL (e.g. `https://samplerack-web.onrender.com`).
+
+The backend reads the database from Render's `DATABASE_URL` and listens on the
+platform `PORT` automatically; the frontend is built with `VITE_API_URL` pointing
+at the API service. Free tiers sleep when idle and the free database expires after
+~90 days — upgrade the `samplerack-api` and `samplerack-db` plans for an always-on site.
+
+> Other hosts (Railway, Fly.io, Azure, a VPS) work too: the API accepts either
+> `ConnectionStrings__DefaultConnection` or a `DATABASE_URL`, and the frontend
+> accepts `VITE_API_URL`. Or run the included `docker-compose.yml` on any server.
+
+---
+
 ## Business rules
 
 - Photo-matched location codes: **A1-01-10 … A1-03-40** (3 bays × 4 shelves, shelf levels in tens).

@@ -3,8 +3,14 @@ import type { AxiosError, InternalAxiosRequestConfig } from 'axios'
 
 const TOKEN_KEY = 'sr_auth_token'
 
+// In dev (and when the API is same-origin behind a proxy) this stays relative.
+// For a split deployment, set VITE_API_URL to the backend origin at build time;
+// a bare host is upgraded to https://.
+const rawApiUrl = (import.meta.env.VITE_API_URL ?? '').trim().replace(/\/+$/, '')
+const apiOrigin = rawApiUrl && !/^https?:\/\//i.test(rawApiUrl) ? `https://${rawApiUrl}` : rawApiUrl
+
 const apiClient = axios.create({
-  baseURL: '/api/v1',
+  baseURL: `${apiOrigin}/api/v1`,
   headers: { 'Content-Type': 'application/json' },
 })
 

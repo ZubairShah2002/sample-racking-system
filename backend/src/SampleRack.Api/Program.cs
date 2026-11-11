@@ -12,6 +12,23 @@ using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// ---- Managed-host (Render/Railway/Heroku) support ----
+// Many PaaS providers expose the database as a single DATABASE_URL and route
+// traffic to a dynamic $PORT. Honor both when present, without changing local
+// development (which uses ConnectionStrings:DefaultConnection and fixed ports).
+var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+if (string.IsNullOrWhiteSpace(builder.Configuration.GetConnectionString("DefaultConnection"))
+    && !string.IsNullOrWhiteSpace(databaseUrl))
+{
+    builder.Configuration["ConnectionStrings:DefaultConnection"] = BuildNpgsqlConnectionString(databaseUrl);
+}
+
+var port = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrWhiteSpace(port))
+{
+    builder.WebHost.UseUrls($"http://+:{port}");
+}
+
 // ---- Services ----
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -120,5 +137,26 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.Run();
+
+// Converts a PaaS-style postgres URL (postgres://user:pass@host:port/db) into an
+// Npgsql key/value connection string, enabling SSL as managed providers require.
+static string BuildNpgsqlConnectionString(string databaseUrl)
+{
+    var uri = new Uri(databaseUrl);
+    var userInfo = uri.UserInfo.Split(':', 2);
+    var username = Uri.UnescapeDataString(userInfo[0]);
+    var password = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : string.Empty;
+
+    var csb = new Npgsql.NpgsqlConnectionStringBuilder
+    {
+        Host = uri.Host,
+        Port = uri.Port > 0 ? uri.Port : 5432,
+        Username = username,
+        Password = password,
+        Database = uri.AbsolutePath.TrimStart('/'),
+        SslMode = Npgsql.SslMode.Require,
+    };
+    return csb.ConnectionString;
+}
 
 public partial class Program;
