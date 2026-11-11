@@ -1,0 +1,19 @@
+.wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+}
+
+.input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-primary-700);
+  cursor: pointer;
+}
+
+.label {
+  font-size: var(--density-font-size);
+  color: var(--color-neutral-800);
+  user-select: none;
+}

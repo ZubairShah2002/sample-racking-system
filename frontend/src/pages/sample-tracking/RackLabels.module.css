@@ -1,0 +1,44 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4);
+}
+
+.label {
+  border: 2px solid var(--color-neutral-900);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  background: #fff;
+  break-inside: avoid;
+}
+
+.labelText { flex: 1; min-width: 0; }
+
+.labelCompany {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-neutral-600);
+}
+
+.labelCode {
+  font-family: var(--font-mono);
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--color-neutral-900);
+  line-height: 1.1;
+}
+
+.labelMeta { font-size: var(--text-sm); color: var(--color-neutral-600); margin-top: var(--space-1); }
+
+@media print {
+  :global(body *) { visibility: hidden !important; }
+  .printArea, .printArea * { visibility: visible !important; }
+  .printArea { position: absolute; left: 0; top: 0; width: 100%; padding: 12mm; }
+  .noPrint { display: none !important; }
+  .grid { gap: 8mm; }
+  .label { border-color: #000; }
+}

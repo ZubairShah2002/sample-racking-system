@@ -1,0 +1,68 @@
+/* ============================================================
+   Berex Tech QMS — Global Styles
+   Body defaults, scrollbar, selection, and base typography.
+   ============================================================ */
+
+body {
+  font-family: var(--font-family);
+  font-size: var(--density-font-size);
+  color: var(--color-neutral-900);
+  background-color: var(--color-surface);
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+::selection {
+  background-color: var(--color-primary-200);
+  color: var(--color-primary-900);
+}
+
+/* ---- Focus visible ---- */
+:focus-visible {
+  outline: 2px solid var(--color-primary-500);
+  outline-offset: 2px;
+}
+
+/* ---- Scrollbar (Webkit) ---- */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-neutral-50);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-neutral-300);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-neutral-400);
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-neutral-300) var(--color-neutral-50);
+}
+
+/* ---- Code / Monospace ---- */
+code,
+pre,
+kbd,
+samp {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+
+/* ---- Base link style ---- */
+a:hover {
+  color: var(--color-primary-700);
+}
