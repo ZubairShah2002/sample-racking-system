@@ -156,7 +156,7 @@ function RackFrame({ maxLevel, maxPosition, zones, upTex, chipTex }: {
               </group>
             ))}
             {/* yellow step-beams + chipboard decks per shelf */}
-            {Array.from({ length: maxLevel + 1 }).map((_, L) => {
+            {Array.from({ length: maxLevel }).map((_, L) => {
               const by = L * (SLOT_H + GAP_Y) + BASE_Y
               return (
                 <group key={L}>
@@ -236,6 +236,15 @@ function Scene({ placed, maxLevel, maxPosition, zones, selectedId, onSelect, res
   const sel = placed.find((p) => p.id === selectedId)
   const focus: [number, number, number] | null = sel ? [sel.x, sel.y - totalH / 2, sel.z] : null
 
+  // Defer the slot labels by one frame so every <Html> mounts after the canvas
+  // DOM target is connected. Without this the very first label (A1-01-10) loses
+  // its portal and never appears.
+  const [labelsReady, setLabelsReady] = useState(false)
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setLabelsReady(true))
+    return () => cancelAnimationFrame(id)
+  }, [])
+
   return (
     <>
       <color attach="background" args={['#eef1f5']} />
@@ -246,7 +255,7 @@ function Scene({ placed, maxLevel, maxPosition, zones, selectedId, onSelect, res
 
       <group position={[0, -totalH / 2, 0]}>
         <RackFrame maxLevel={maxLevel} maxPosition={maxPosition} zones={zones} upTex={upTex} chipTex={chipTex} />
-        {placed.map((loc) => (
+        {labelsReady && placed.map((loc) => (
           <Slot key={loc.id} loc={loc} selected={selectedId === loc.id} onSelect={onSelect} />
         ))}
         {/* grey floor + white wall, like the real room */}
