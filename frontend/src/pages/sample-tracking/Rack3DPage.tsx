@@ -45,14 +45,19 @@ function makeUprightTexture() {
   const c = document.createElement('canvas')
   c.width = 64; c.height = 220
   const g = c.getContext('2d')!
+  // Brighter painted-steel blue, matching the real MYSTAR uprights.
   const grd = g.createLinearGradient(0, 0, 64, 0)
-  grd.addColorStop(0, '#2a57bd'); grd.addColorStop(0.5, '#1f49a8'); grd.addColorStop(1, '#173a8c')
+  grd.addColorStop(0, '#3f6fd6'); grd.addColorStop(0.5, '#2f5cc4'); grd.addColorStop(1, '#2149a6')
   g.fillStyle = grd; g.fillRect(0, 0, 64, 220)
-  for (let y = 18; y < 220; y += 36) for (const x of [20, 44]) {
-    g.fillStyle = '#122e74'
-    g.beginPath(); g.arc(x, y, 6.4, 0, 6.3); g.fill()
-    g.beginPath(); g.moveTo(x - 4.2, y); g.lineTo(x, y + 15); g.lineTo(x + 4.2, y); g.closePath(); g.fill()
-    g.fillStyle = '#0c2258'; g.beginPath(); g.arc(x, y, 3.4, 0, 6.3); g.fill()
+  // Channel edge highlights down both sides of the post face.
+  g.fillStyle = 'rgba(255,255,255,0.12)'; g.fillRect(2, 0, 3, 220); g.fillRect(59, 0, 3, 220)
+  g.fillStyle = 'rgba(0,0,0,0.10)'; g.fillRect(0, 0, 2, 220); g.fillRect(62, 0, 2, 220)
+  // Two vertical columns of keyhole slots (round top tapering to a slot).
+  for (let y = 14; y < 220; y += 30) for (const x of [21, 43]) {
+    g.fillStyle = '#0e2a63'
+    g.beginPath(); g.arc(x, y, 5.4, 0, 6.3); g.fill()
+    g.beginPath(); g.moveTo(x - 3.2, y); g.lineTo(x + 3.2, y); g.lineTo(x + 1.5, y + 13); g.lineTo(x - 1.5, y + 13); g.closePath(); g.fill()
+    g.fillStyle = '#081d49'; g.beginPath(); g.arc(x, y, 2.7, 0, 6.3); g.fill()
   }
   const t = new THREE.CanvasTexture(c)
   t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8
@@ -62,7 +67,7 @@ function makeChipTexture() {
   const c = document.createElement('canvas')
   c.width = 256; c.height = 256
   const g = c.getContext('2d')!
-  g.fillStyle = '#d2bd96'; g.fillRect(0, 0, 256, 256)
+  g.fillStyle = '#d8c6a2'; g.fillRect(0, 0, 256, 256)
   for (let i = 0; i < 12000; i++) {
     const x = Math.random() * 256, y = Math.random() * 256, d = Math.random()
     g.fillStyle = d > 0.6 ? 'rgba(168,140,96,.28)' : d > 0.3 ? 'rgba(120,96,60,.18)' : 'rgba(225,208,176,.3)'
@@ -142,7 +147,7 @@ function RackFrame({ maxLevel, maxPosition, zones, upTex, chipTex }: {
               <group key={i}>
                 <mesh position={[px, totalH / 2, pz]} castShadow receiveShadow>
                   <boxGeometry args={[POST, totalH, POST]} />
-                  <meshStandardMaterial map={upTex} metalness={0.5} roughness={0.42} />
+                  <meshStandardMaterial map={upTex} metalness={0.3} roughness={0.52} />
                 </mesh>
                 <mesh position={[px, 0.03, pz]} castShadow>
                   <boxGeometry args={[POST * 1.3, 0.06, POST * 1.3]} />
@@ -159,11 +164,11 @@ function RackFrame({ maxLevel, maxPosition, zones, upTex, chipTex }: {
                     <group key={bi}>
                       <mesh position={[0, by, bz]} castShadow>
                         <boxGeometry args={[halfW * 2, 0.13, 0.05]} />
-                        <meshStandardMaterial color="#f1b108" metalness={0.4} roughness={0.42} />
+                        <meshStandardMaterial color="#f4b50c" metalness={0.28} roughness={0.5} />
                       </mesh>
                       <mesh position={[0, by + 0.08, bz + (bz > zc ? 0.012 : -0.012)]} castShadow>
                         <boxGeometry args={[halfW * 2, 0.03, 0.08]} />
-                        <meshStandardMaterial color="#f1b108" metalness={0.4} roughness={0.42} />
+                        <meshStandardMaterial color="#f4b50c" metalness={0.28} roughness={0.5} />
                       </mesh>
                     </group>
                   ))}
@@ -233,9 +238,9 @@ function Scene({ placed, maxLevel, maxPosition, zones, selectedId, onSelect, res
 
   return (
     <>
-      <color attach="background" args={['#e9edf1']} />
-      <hemisphereLight args={[0xffffff, 0x8a93a0, 0.5]} />
-      <ambientLight intensity={0.35} />
+      <color attach="background" args={['#eef1f5']} />
+      <hemisphereLight args={[0xffffff, 0x9aa3b0, 0.62]} />
+      <ambientLight intensity={0.42} />
       <directionalLight position={[6, 11, 7]} intensity={1.2} castShadow shadow-mapSize={[2048, 2048]} shadow-bias={-0.0003} />
       <directionalLight position={[-7, 6, -4]} intensity={0.3} />
 
@@ -247,11 +252,11 @@ function Scene({ placed, maxLevel, maxPosition, zones, selectedId, onSelect, res
         {/* grey floor + white wall, like the real room */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
           <planeGeometry args={[60, 60]} />
-          <meshStandardMaterial color="#d3d9e0" roughness={1} />
+          <meshStandardMaterial color="#dde3ea" roughness={1} />
         </mesh>
         <mesh position={[0, totalH / 2, -dz - 0.25]} receiveShadow>
           <planeGeometry args={[40, 24]} />
-          <meshStandardMaterial color="#f3f5f7" roughness={1} />
+          <meshStandardMaterial color="#f7f8fa" roughness={1} />
         </mesh>
       </group>
 
