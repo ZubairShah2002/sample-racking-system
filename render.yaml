@@ -53,11 +53,11 @@ services:
     buildCommand: cd frontend && npm ci && npm run build
     staticPublishPath: frontend/dist
     envVars:
+      # The frontend calls the API directly at this origin (CORS is open on the
+      # API). If Render assigned the API a different hostname, change this value
+      # to match the API service's URL, then redeploy.
       - key: VITE_API_URL
-        fromService:
-          type: web
-          name: samplerack-api
-          property: host             # e.g. samplerack-api.onrender.com
+        value: https://samplerack-api.onrender.com
     routes:
       - type: rewrite
         source: /*
