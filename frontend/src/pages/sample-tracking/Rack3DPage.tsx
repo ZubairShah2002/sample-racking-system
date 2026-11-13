@@ -52,12 +52,12 @@ function makeUprightTexture() {
   // Channel edge highlights down both sides of the post face.
   g.fillStyle = 'rgba(255,255,255,0.12)'; g.fillRect(2, 0, 3, 220); g.fillRect(59, 0, 3, 220)
   g.fillStyle = 'rgba(0,0,0,0.10)'; g.fillRect(0, 0, 2, 220); g.fillRect(62, 0, 2, 220)
-  // Two vertical columns of keyhole slots (round top tapering to a slot).
-  for (let y = 14; y < 220; y += 30) for (const x of [21, 43]) {
+  // Two vertical columns of densely packed keyhole slots, like the real upright.
+  for (let y = 11; y < 220; y += 18) for (const x of [21, 43]) {
     g.fillStyle = '#0e2a63'
-    g.beginPath(); g.arc(x, y, 5.4, 0, 6.3); g.fill()
-    g.beginPath(); g.moveTo(x - 3.2, y); g.lineTo(x + 3.2, y); g.lineTo(x + 1.5, y + 13); g.lineTo(x - 1.5, y + 13); g.closePath(); g.fill()
-    g.fillStyle = '#081d49'; g.beginPath(); g.arc(x, y, 2.7, 0, 6.3); g.fill()
+    g.beginPath(); g.arc(x, y, 4.0, 0, 6.3); g.fill()
+    g.beginPath(); g.moveTo(x - 2.4, y); g.lineTo(x + 2.4, y); g.lineTo(x + 1.1, y + 8.5); g.lineTo(x - 1.1, y + 8.5); g.closePath(); g.fill()
+    g.fillStyle = '#081d49'; g.beginPath(); g.arc(x, y, 2.0, 0, 6.3); g.fill()
   }
   const t = new THREE.CanvasTexture(c)
   t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8
