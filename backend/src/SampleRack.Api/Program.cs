@@ -14,11 +14,11 @@ var builder = WebApplication.CreateBuilder(args);
 
 // ---- Managed-host (Render/Railway/Heroku) support ----
 // Many PaaS providers expose the database as a single DATABASE_URL and route
-// traffic to a dynamic $PORT. Honor both when present, without changing local
-// development (which uses ConnectionStrings:DefaultConnection and fixed ports).
+// traffic to a dynamic $PORT. When DATABASE_URL is present it is authoritative:
+// it must override the local-development default baked into appsettings.json
+// (otherwise the app would try to reach localhost in the cloud).
 var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
-if (string.IsNullOrWhiteSpace(builder.Configuration.GetConnectionString("DefaultConnection"))
-    && !string.IsNullOrWhiteSpace(databaseUrl))
+if (!string.IsNullOrWhiteSpace(databaseUrl))
 {
     builder.Configuration["ConnectionStrings:DefaultConnection"] = BuildNpgsqlConnectionString(databaseUrl);
 }
@@ -129,14 +129,24 @@ app.MapControllers();
 app.MapHealthChecks("/health");
 app.MapGet("/", () => Results.Ok(new { service = "Sample Racking Management API", status = "ok" }));
 
-// Apply schema + seed on startup.
-using (var scope = app.Services.CreateScope())
+// Start the web host first so the platform immediately detects an open port,
+// then apply the schema + seed. A failure here is logged (not fatal) so the
+// service stays up and the cause is visible in the logs.
+await app.StartAsync();
+
+try
 {
+    using var scope = app.Services.CreateScope();
     var initializer = scope.ServiceProvider.GetRequiredService<DatabaseInitializer>();
     await initializer.InitializeAsync();
 }
+catch (Exception ex)
+{
+    app.Services.GetRequiredService<ILogger<Program>>()
+        .LogError(ex, "Database initialization failed on startup.");
+}
 
-app.Run();
+await app.WaitForShutdownAsync();
 
 // Converts a PaaS-style postgres URL (postgres://user:pass@host:port/db) into an
 // Npgsql key/value connection string, enabling SSL as managed providers require.
@@ -154,7 +164,9 @@ static string BuildNpgsqlConnectionString(string databaseUrl)
         Username = username,
         Password = password,
         Database = uri.AbsolutePath.TrimStart('/'),
-        SslMode = Npgsql.SslMode.Require,
+        // Prefer uses TLS when the server offers it (managed hosts) and still
+        // connects over internal networks that don't — robust for both.
+        SslMode = Npgsql.SslMode.Prefer,
     };
     return csb.ConnectionString;
 }
