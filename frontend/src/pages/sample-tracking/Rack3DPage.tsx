@@ -21,9 +21,9 @@ const GAP_X = 0.14
 const GAP_Y = 0.2
 const BASE_Y = 0.15
 const POST = 0.09
-// Framed to show both racks (main + the second one to its left) and the fan.
-const HOME_POS: [number, number, number] = [1.6, 4.3, 9.6]
-const HOME_TARGET: [number, number, number] = [-2.4, 0.2, 0]
+// Look down the aisle from the front, favouring the live (left) rack.
+const HOME_POS: [number, number, number] = [4.6, 4.7, 9.4]
+const HOME_TARGET: [number, number, number] = [-0.5, 1.4, -1.1]
 
 interface Placed extends RackOccupancy {
   x: number
@@ -194,52 +194,48 @@ function RackFrame({ maxLevel, maxPosition, zones, upTex, chipTex }: {
 }
 
 // ---- The sample room (white walls, grey epoxy floor, ceiling light panels) ----
-function Room({ halfW, totalH, backZ }: { halfW: number; totalH: number; backZ: number }) {
-  const roomH = totalH + 1.15
-  // Wide enough to hold the main rack plus a second rack to its left and the fan.
-  const roomHalfW = Math.max(3 * halfW + 1.6, 7.6)
-  const depthBack = backZ - 0.05
-  const depthFront = 9
-  const depth = depthFront - depthBack
-  const midZ = (depthFront + depthBack) / 2
+// The aisle runs along Z; racks face each other across it.
+function Room({ halfX, roomH, backZ, frontZ }: { halfX: number; roomH: number; backZ: number; frontZ: number }) {
+  const depth = frontZ - backZ
+  const midZ = (frontZ + backZ) / 2
   const wall = '#f3f4f6'
-  const panels: number[] = [-roomHalfW * 0.42, roomHalfW * 0.42]
+  const panels: number[] = [backZ + depth * 0.32, backZ + depth * 0.62]
 
   return (
     <group>
       {/* grey epoxy floor */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, midZ]} receiveShadow>
-        <planeGeometry args={[roomHalfW * 2, depth]} />
+        <planeGeometry args={[halfX * 2, depth]} />
         <meshStandardMaterial color="#cdd3da" roughness={0.97} />
       </mesh>
       {/* back wall */}
-      <mesh position={[0, roomH / 2, depthBack]} receiveShadow>
-        <planeGeometry args={[roomHalfW * 2, roomH]} />
+      <mesh position={[0, roomH / 2, backZ]} receiveShadow>
+        <planeGeometry args={[halfX * 2, roomH]} />
         <meshStandardMaterial color={wall} roughness={1} />
       </mesh>
       {/* left wall */}
-      <mesh position={[-roomHalfW, roomH / 2, midZ]} rotation={[0, Math.PI / 2, 0]} receiveShadow>
+      <mesh position={[-halfX, roomH / 2, midZ]} rotation={[0, Math.PI / 2, 0]} receiveShadow>
         <planeGeometry args={[depth, roomH]} />
         <meshStandardMaterial color={wall} roughness={1} />
       </mesh>
       {/* right wall */}
-      <mesh position={[roomHalfW, roomH / 2, midZ]} rotation={[0, -Math.PI / 2, 0]} receiveShadow>
+      <mesh position={[halfX, roomH / 2, midZ]} rotation={[0, -Math.PI / 2, 0]} receiveShadow>
         <planeGeometry args={[depth, roomH]} />
         <meshStandardMaterial color={wall} roughness={1} />
       </mesh>
       {/* suspended ceiling */}
       <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, roomH, midZ]}>
-        <planeGeometry args={[roomHalfW * 2, depth]} />
+        <planeGeometry args={[halfX * 2, depth]} />
         <meshStandardMaterial color="#e9ebee" roughness={1} />
       </mesh>
-      {/* recessed fluorescent light panels */}
-      {panels.map((lx, i) => (
+      {/* recessed fluorescent light panels down the aisle */}
+      {panels.map((lz, i) => (
         <group key={i}>
-          <mesh position={[lx, roomH - 0.03, midZ]} rotation={[Math.PI / 2, 0, 0]}>
-            <planeGeometry args={[1.25, 3.2]} />
+          <mesh position={[0, roomH - 0.03, lz]} rotation={[Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[1.3, 2.4]} />
             <meshStandardMaterial color="#ffffff" emissive="#f5f8ff" emissiveIntensity={1.1} toneMapped={false} />
           </mesh>
-          <pointLight position={[lx, roomH - 0.4, midZ]} intensity={0.45} distance={16} decay={2} color="#eef3fb" />
+          <pointLight position={[0, roomH - 0.4, lz]} intensity={0.5} distance={16} decay={2} color="#eef3fb" />
         </group>
       ))}
     </group>
@@ -284,7 +280,8 @@ function Fan({ position }: { position: [number, number, number] }) {
   )
 }
 
-const CAM_DIR = new THREE.Vector3(0.5, 0.34, 1).normalize()
+// The live rack faces +x, so zoom in from the aisle side.
+const CAM_DIR = new THREE.Vector3(1, 0.4, 0.55).normalize()
 
 function CameraRig({ controls, focus, focusKey, resetNonce }: {
   controls: React.RefObject<CameraControlsImpl | null>
@@ -327,8 +324,24 @@ function Scene({ placed, maxLevel, maxPosition, zones, selectedId, onSelect, res
   const totalH = maxLevel * (SLOT_H + GAP_Y) + BASE_Y
   const dz = SLOT_D / 2 + 0.12
   const halfW = (maxPosition * (SLOT_W + GAP_X)) / 2 + 0.2
+
+  // Aisle runs along Z; the two racks face each other across it.
+  const aisleHalf = 0.95
+  const leftRackX = -(aisleHalf + dz)
+  const rightRackX = aisleHalf + dz
+  const rackHalfLen = halfW
+  const backZ = -(rackHalfLen + 1.35)
+  const frontZ = 8.5
+  const roomHalfX = Math.max(aisleHalf + 2 * dz + 2.2, 4.4)
+  const roomH = totalH + 1.15
+  const fanZ = -(rackHalfLen + 0.55)
+
+  // The live rack is rotated +90° about Y and moved to leftRackX, so a slot's
+  // local (x,y,z) maps to world (leftRackX + z, y, -x) before the group offset.
   const sel = placed.find((p) => p.id === selectedId)
-  const focus: [number, number, number] | null = sel ? [sel.x, sel.y - totalH / 2, sel.z] : null
+  const focus: [number, number, number] | null = sel
+    ? [leftRackX + sel.z, sel.y - totalH / 2, -sel.x]
+    : null
 
   // Defer the slot labels by one frame so every <Html> mounts after the canvas
   // DOM target is connected. Without this the very first label (A1-01-10) loses
@@ -348,16 +361,19 @@ function Scene({ placed, maxLevel, maxPosition, zones, selectedId, onSelect, res
       <directionalLight position={[-7, 6, -4]} intensity={0.3} />
 
       <group position={[0, -totalH / 2, 0]}>
-        <Room halfW={halfW} totalH={totalH} backZ={-dz - 0.3} />
-        <RackFrame maxLevel={maxLevel} maxPosition={maxPosition} zones={zones} upTex={upTex} chipTex={chipTex} />
-        {labelsReady && placed.map((loc) => (
-          <Slot key={loc.id} loc={loc} selected={selectedId === loc.id} onSelect={onSelect} />
-        ))}
-        {/* Second rack — frame only, no locations assigned yet. */}
-        <group position={[-(2 * halfW + 0.85), 0, 0]}>
+        <Room halfX={roomHalfX} roomH={roomH} backZ={backZ} frontZ={frontZ} />
+        {/* LEFT rack — the live one (with locations), facing the aisle (+x) */}
+        <group position={[leftRackX, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
+          <RackFrame maxLevel={maxLevel} maxPosition={maxPosition} zones={zones} upTex={upTex} chipTex={chipTex} />
+          {labelsReady && placed.map((loc) => (
+            <Slot key={loc.id} loc={loc} selected={selectedId === loc.id} onSelect={onSelect} />
+          ))}
+        </group>
+        {/* RIGHT rack — frame only, no locations assigned yet, facing the aisle (-x) */}
+        <group position={[rightRackX, 0, 0]} rotation={[0, -Math.PI / 2, 0]}>
           <RackFrame maxLevel={maxLevel} maxPosition={maxPosition} zones={zones} upTex={upTex} chipTex={chipTex} />
         </group>
-        <Fan position={[-(halfW + 0.42), 0, 1.5]} />
+        <Fan position={[0, 0, fanZ]} />
       </group>
 
       <CameraControls ref={controls} makeDefault maxPolarAngle={Math.PI / 1.9} />
