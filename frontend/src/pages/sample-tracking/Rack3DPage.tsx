@@ -21,7 +21,9 @@ const GAP_X = 0.14
 const GAP_Y = 0.2
 const BASE_Y = 0.15
 const POST = 0.09
-const HOME_POS: [number, number, number] = [4.8, 3.6, 6.4]
+// Framed to show both racks (main + the second one to its left) and the fan.
+const HOME_POS: [number, number, number] = [1.6, 4.3, 9.6]
+const HOME_TARGET: [number, number, number] = [-2.4, 0.2, 0]
 
 interface Placed extends RackOccupancy {
   x: number
@@ -194,7 +196,8 @@ function RackFrame({ maxLevel, maxPosition, zones, upTex, chipTex }: {
 // ---- The sample room (white walls, grey epoxy floor, ceiling light panels) ----
 function Room({ halfW, totalH, backZ }: { halfW: number; totalH: number; backZ: number }) {
   const roomH = totalH + 1.15
-  const roomHalfW = Math.max(halfW + 3.2, 5.5)
+  // Wide enough to hold the main rack plus a second rack to its left and the fan.
+  const roomHalfW = Math.max(3 * halfW + 1.6, 7.6)
   const depthBack = backZ - 0.05
   const depthFront = 9
   const depth = depthFront - depthBack
@@ -294,7 +297,7 @@ function CameraRig({ controls, focus, focusKey, resetNonce }: {
     const cc = controls.current
     if (!cc) return
     cc.minDistance = 1.5; cc.maxDistance = 24; cc.smoothTime = 0.32
-    void cc.setLookAt(...HOME_POS, 0, 0, 0, false)
+    void cc.setLookAt(...HOME_POS, ...HOME_TARGET, false)
     cc.saveState()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -350,7 +353,11 @@ function Scene({ placed, maxLevel, maxPosition, zones, selectedId, onSelect, res
         {labelsReady && placed.map((loc) => (
           <Slot key={loc.id} loc={loc} selected={selectedId === loc.id} onSelect={onSelect} />
         ))}
-        <Fan position={[halfW + 1.35, 0, -0.25]} />
+        {/* Second rack — frame only, no locations assigned yet. */}
+        <group position={[-(2 * halfW + 0.85), 0, 0]}>
+          <RackFrame maxLevel={maxLevel} maxPosition={maxPosition} zones={zones} upTex={upTex} chipTex={chipTex} />
+        </group>
+        <Fan position={[-(halfW + 0.42), 0, 1.5]} />
       </group>
 
       <CameraControls ref={controls} makeDefault maxPolarAngle={Math.PI / 1.9} />
