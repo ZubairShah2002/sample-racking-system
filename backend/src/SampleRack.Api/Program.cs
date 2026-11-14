@@ -129,24 +129,28 @@ app.MapControllers();
 app.MapHealthChecks("/health");
 app.MapGet("/", () => Results.Ok(new { service = "Sample Racking Management API", status = "ok" }));
 
-// Start the web host first so the platform immediately detects an open port,
-// then apply the schema + seed. A failure here is logged (not fatal) so the
-// service stays up and the cause is visible in the logs.
-await app.StartAsync();
-
-try
+// Apply the schema + seed in the background AFTER the server is listening, so the
+// platform detects the open port immediately and the deploy never blocks on the
+// database. A failure here is logged (not fatal) so the service stays up.
+app.Lifetime.ApplicationStarted.Register(() =>
 {
-    using var scope = app.Services.CreateScope();
-    var initializer = scope.ServiceProvider.GetRequiredService<DatabaseInitializer>();
-    await initializer.InitializeAsync();
-}
-catch (Exception ex)
-{
-    app.Services.GetRequiredService<ILogger<Program>>()
-        .LogError(ex, "Database initialization failed on startup.");
-}
+    _ = Task.Run(async () =>
+    {
+        try
+        {
+            using var scope = app.Services.CreateScope();
+            var initializer = scope.ServiceProvider.GetRequiredService<DatabaseInitializer>();
+            await initializer.InitializeAsync();
+        }
+        catch (Exception ex)
+        {
+            app.Services.GetRequiredService<ILogger<Program>>()
+                .LogError(ex, "Database initialization failed on startup.");
+        }
+    });
+});
 
-await app.WaitForShutdownAsync();
+app.Run();
 
 // Converts a PaaS-style postgres URL (postgres://user:pass@host:port/db) into an
 // Npgsql key/value connection string, enabling SSL as managed providers require.

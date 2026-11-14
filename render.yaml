@@ -21,7 +21,9 @@ services:
     plan: free
     dockerfilePath: ./backend/Dockerfile
     dockerContext: .
-    healthCheckPath: /health
+    # Liveness only (no DB dependency) so the deploy succeeds as soon as the
+    # server is listening; schema init runs in the background.
+    healthCheckPath: /
     envVars:
       - key: DATABASE_URL
         fromDatabase:
