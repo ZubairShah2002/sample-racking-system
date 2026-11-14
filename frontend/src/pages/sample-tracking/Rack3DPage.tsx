@@ -191,6 +191,96 @@ function RackFrame({ maxLevel, maxPosition, zones, upTex, chipTex }: {
   )
 }
 
+// ---- The sample room (white walls, grey epoxy floor, ceiling light panels) ----
+function Room({ halfW, totalH, backZ }: { halfW: number; totalH: number; backZ: number }) {
+  const roomH = totalH + 1.15
+  const roomHalfW = Math.max(halfW + 3.2, 5.5)
+  const depthBack = backZ - 0.05
+  const depthFront = 9
+  const depth = depthFront - depthBack
+  const midZ = (depthFront + depthBack) / 2
+  const wall = '#f3f4f6'
+  const panels: number[] = [-roomHalfW * 0.42, roomHalfW * 0.42]
+
+  return (
+    <group>
+      {/* grey epoxy floor */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, midZ]} receiveShadow>
+        <planeGeometry args={[roomHalfW * 2, depth]} />
+        <meshStandardMaterial color="#cdd3da" roughness={0.97} />
+      </mesh>
+      {/* back wall */}
+      <mesh position={[0, roomH / 2, depthBack]} receiveShadow>
+        <planeGeometry args={[roomHalfW * 2, roomH]} />
+        <meshStandardMaterial color={wall} roughness={1} />
+      </mesh>
+      {/* left wall */}
+      <mesh position={[-roomHalfW, roomH / 2, midZ]} rotation={[0, Math.PI / 2, 0]} receiveShadow>
+        <planeGeometry args={[depth, roomH]} />
+        <meshStandardMaterial color={wall} roughness={1} />
+      </mesh>
+      {/* right wall */}
+      <mesh position={[roomHalfW, roomH / 2, midZ]} rotation={[0, -Math.PI / 2, 0]} receiveShadow>
+        <planeGeometry args={[depth, roomH]} />
+        <meshStandardMaterial color={wall} roughness={1} />
+      </mesh>
+      {/* suspended ceiling */}
+      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, roomH, midZ]}>
+        <planeGeometry args={[roomHalfW * 2, depth]} />
+        <meshStandardMaterial color="#e9ebee" roughness={1} />
+      </mesh>
+      {/* recessed fluorescent light panels */}
+      {panels.map((lx, i) => (
+        <group key={i}>
+          <mesh position={[lx, roomH - 0.03, midZ]} rotation={[Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[1.25, 3.2]} />
+            <meshStandardMaterial color="#ffffff" emissive="#f5f8ff" emissiveIntensity={1.1} toneMapped={false} />
+          </mesh>
+          <pointLight position={[lx, roomH - 0.4, midZ]} intensity={0.45} distance={16} decay={2} color="#eef3fb" />
+        </group>
+      ))}
+    </group>
+  )
+}
+
+function Fan({ position }: { position: [number, number, number] }) {
+  return (
+    <group position={position}>
+      <mesh position={[0, 0.03, 0]} castShadow receiveShadow>
+        <cylinderGeometry args={[0.3, 0.34, 0.06, 24]} />
+        <meshStandardMaterial color="#3a3f45" roughness={0.6} metalness={0.3} />
+      </mesh>
+      <mesh position={[0, 0.73, 0]} castShadow>
+        <cylinderGeometry args={[0.026, 0.03, 1.4, 16]} />
+        <meshStandardMaterial color="#70757d" roughness={0.5} metalness={0.5} />
+      </mesh>
+      {/* head faces the aisle (+z) */}
+      <group position={[0, 1.44, 0.04]} rotation={[Math.PI / 2, 0, 0]}>
+        <mesh castShadow>
+          <cylinderGeometry args={[0.1, 0.1, 0.2, 20]} />
+          <meshStandardMaterial color="#2f3338" roughness={0.6} />
+        </mesh>
+        <mesh position={[0, 0.13, 0]}>
+          <cylinderGeometry args={[0.05, 0.05, 0.05, 12]} />
+          <meshStandardMaterial color="#15181b" />
+        </mesh>
+        {[0, 1, 2].map((i) => (
+          <mesh key={i} position={[0, 0.14, 0]} rotation={[0, (i * 2 * Math.PI) / 3, 0]}>
+            <mesh position={[0.14, 0, 0]}>
+              <boxGeometry args={[0.26, 0.015, 0.1]} />
+              <meshStandardMaterial color="#dfe2e6" transparent opacity={0.9} side={THREE.DoubleSide} />
+            </mesh>
+          </mesh>
+        ))}
+        <mesh position={[0, 0.16, 0]} rotation={[Math.PI / 2, 0, 0]}>
+          <torusGeometry args={[0.3, 0.014, 8, 30]} />
+          <meshStandardMaterial color="#aab0b8" metalness={0.6} roughness={0.4} />
+        </mesh>
+      </group>
+    </group>
+  )
+}
+
 const CAM_DIR = new THREE.Vector3(0.5, 0.34, 1).normalize()
 
 function CameraRig({ controls, focus, focusKey, resetNonce }: {
@@ -233,6 +323,7 @@ function Scene({ placed, maxLevel, maxPosition, zones, selectedId, onSelect, res
   const { upTex, chipTex } = useMemo(() => ({ upTex: makeUprightTexture(), chipTex: makeChipTexture() }), [])
   const totalH = maxLevel * (SLOT_H + GAP_Y) + BASE_Y
   const dz = SLOT_D / 2 + 0.12
+  const halfW = (maxPosition * (SLOT_W + GAP_X)) / 2 + 0.2
   const sel = placed.find((p) => p.id === selectedId)
   const focus: [number, number, number] | null = sel ? [sel.x, sel.y - totalH / 2, sel.z] : null
 
@@ -254,19 +345,12 @@ function Scene({ placed, maxLevel, maxPosition, zones, selectedId, onSelect, res
       <directionalLight position={[-7, 6, -4]} intensity={0.3} />
 
       <group position={[0, -totalH / 2, 0]}>
+        <Room halfW={halfW} totalH={totalH} backZ={-dz - 0.3} />
         <RackFrame maxLevel={maxLevel} maxPosition={maxPosition} zones={zones} upTex={upTex} chipTex={chipTex} />
         {labelsReady && placed.map((loc) => (
           <Slot key={loc.id} loc={loc} selected={selectedId === loc.id} onSelect={onSelect} />
         ))}
-        {/* grey floor + white wall, like the real room */}
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
-          <planeGeometry args={[60, 60]} />
-          <meshStandardMaterial color="#dde3ea" roughness={1} />
-        </mesh>
-        <mesh position={[0, totalH / 2, -dz - 0.25]} receiveShadow>
-          <planeGeometry args={[40, 24]} />
-          <meshStandardMaterial color="#f7f8fa" roughness={1} />
-        </mesh>
+        <Fan position={[halfW + 1.35, 0, -0.25]} />
       </group>
 
       <CameraControls ref={controls} makeDefault maxPolarAngle={Math.PI / 1.9} />
