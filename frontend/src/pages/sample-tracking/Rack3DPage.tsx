@@ -21,9 +21,9 @@ const GAP_X = 0.14
 const GAP_Y = 0.2
 const BASE_Y = 0.15
 const POST = 0.09
-// Stand at the aisle mouth and look down it, favouring the live (left) rack.
-const HOME_POS: [number, number, number] = [0.7, 2.4, 7.7]
-const HOME_TARGET: [number, number, number] = [-0.25, 0.2, -1.9]
+// Stand at the aisle mouth and look down it, favouring the live (right) rack.
+const HOME_POS: [number, number, number] = [-0.7, 2.4, 7.7]
+const HOME_TARGET: [number, number, number] = [0.25, 0.2, -1.9]
 
 interface Placed extends RackOccupancy {
   x: number
@@ -131,8 +131,8 @@ function RackFrame({ maxLevel, maxPosition, zones, upTex, chipTex }: {
 }) {
   const halfW = (maxPosition * (SLOT_W + GAP_X)) / 2 + 0.2
   const totalH = maxLevel * (SLOT_H + GAP_Y) + BASE_Y
-  // Uprights end just above the top shelf (not a full empty slot above it).
-  const postH = (maxLevel - 1) * (SLOT_H + GAP_Y) + BASE_Y + SLOT_H * 0.72
+  // Uprights end flush with the top shelf (no blue posts sticking up above it).
+  const postH = (maxLevel - 1) * (SLOT_H + GAP_Y) + BASE_Y + 0.06
   upTex.repeat.set(1, postH / 0.52)
   const zoneSpan = SLOT_D + 1.6
   const dz = SLOT_D / 2 + 0.12
@@ -282,8 +282,8 @@ function Fan({ position }: { position: [number, number, number] }) {
   )
 }
 
-// The live rack faces +x, so zoom in from the aisle side.
-const CAM_DIR = new THREE.Vector3(1, 0.4, 0.55).normalize()
+// The live rack faces -x, so zoom in from the aisle side.
+const CAM_DIR = new THREE.Vector3(-1, 0.4, 0.55).normalize()
 
 function CameraRig({ controls, focus, focusKey, resetNonce }: {
   controls: React.RefObject<CameraControlsImpl | null>
@@ -339,11 +339,11 @@ function Scene({ placed, maxLevel, maxPosition, zones, selectedId, onSelect, res
   const roomH = totalH + 1.15
   const fanZ = -(rackHalfLen + 0.55)
 
-  // The live rack is rotated +90° about Y and moved to leftRackX, so a slot's
-  // local (x,y,z) maps to world (leftRackX + z, y, -x) before the group offset.
+  // The live rack is rotated -90° about Y and moved to rightRackX, so a slot's
+  // local (x,y,z) maps to world (rightRackX - z, y, x) before the group offset.
   const sel = placed.find((p) => p.id === selectedId)
   const focus: [number, number, number] | null = sel
-    ? [leftRackX + sel.z, sel.y - totalH / 2, -sel.x]
+    ? [rightRackX - sel.z, sel.y - totalH / 2, sel.x]
     : null
 
   // Defer the slot labels by one frame so every <Html> mounts after the canvas
@@ -365,16 +365,16 @@ function Scene({ placed, maxLevel, maxPosition, zones, selectedId, onSelect, res
 
       <group position={[0, -totalH / 2, 0]}>
         <Room halfX={roomHalfX} roomH={roomH} backZ={backZ} frontZ={frontZ} />
-        {/* LEFT rack — the live one (with locations), facing the aisle (+x) */}
+        {/* LEFT rack — frame only, no locations assigned yet, facing the aisle (+x) */}
         <group position={[leftRackX, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
+          <RackFrame maxLevel={maxLevel} maxPosition={maxPosition} zones={zones} upTex={upTex} chipTex={chipTex} />
+        </group>
+        {/* RIGHT rack — the live one (with locations), facing the aisle (-x) */}
+        <group position={[rightRackX, 0, 0]} rotation={[0, -Math.PI / 2, 0]}>
           <RackFrame maxLevel={maxLevel} maxPosition={maxPosition} zones={zones} upTex={upTex} chipTex={chipTex} />
           {labelsReady && placed.map((loc) => (
             <Slot key={loc.id} loc={loc} selected={selectedId === loc.id} onSelect={onSelect} />
           ))}
-        </group>
-        {/* RIGHT rack — frame only, no locations assigned yet, facing the aisle (-x) */}
-        <group position={[rightRackX, 0, 0]} rotation={[0, -Math.PI / 2, 0]}>
-          <RackFrame maxLevel={maxLevel} maxPosition={maxPosition} zones={zones} upTex={upTex} chipTex={chipTex} />
         </group>
         <Fan position={[0, 0, fanZ]} />
       </group>
