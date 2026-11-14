@@ -21,9 +21,9 @@ const GAP_X = 0.14
 const GAP_Y = 0.2
 const BASE_Y = 0.15
 const POST = 0.09
-// Look down the aisle from the front, favouring the live (left) rack.
-const HOME_POS: [number, number, number] = [4.6, 4.7, 9.4]
-const HOME_TARGET: [number, number, number] = [-0.5, 1.4, -1.1]
+// Stand at the aisle mouth and look down it, favouring the live (left) rack.
+const HOME_POS: [number, number, number] = [0.7, 2.4, 7.7]
+const HOME_TARGET: [number, number, number] = [-0.25, 0.2, -1.9]
 
 interface Placed extends RackOccupancy {
   x: number
@@ -119,7 +119,7 @@ function Slot({ loc, selected, onSelect }: { loc: Placed; selected: boolean; onS
         </mesh>
       ))}
 
-      <Html center distanceFactor={9} position={[0, SLOT_H / 2 + 0.16, 0]} zIndexRange={[10, 0]}>
+      <Html center distanceFactor={9} position={[0, -SLOT_H / 2 + 0.06, SLOT_D / 2 + 0.06]} zIndexRange={[10, 0]}>
         <span className={styles.htmlLabel}>{loc.code}</span>
       </Html>
     </group>
@@ -131,7 +131,9 @@ function RackFrame({ maxLevel, maxPosition, zones, upTex, chipTex }: {
 }) {
   const halfW = (maxPosition * (SLOT_W + GAP_X)) / 2 + 0.2
   const totalH = maxLevel * (SLOT_H + GAP_Y) + BASE_Y
-  upTex.repeat.set(1, totalH / 0.52)
+  // Uprights end just above the top shelf (not a full empty slot above it).
+  const postH = (maxLevel - 1) * (SLOT_H + GAP_Y) + BASE_Y + SLOT_H * 0.72
+  upTex.repeat.set(1, postH / 0.52)
   const zoneSpan = SLOT_D + 1.6
   const dz = SLOT_D / 2 + 0.12
 
@@ -147,8 +149,8 @@ function RackFrame({ maxLevel, maxPosition, zones, upTex, chipTex }: {
             {/* blue slotted uprights + black foot caps */}
             {posts.map(([px, pz], i) => (
               <group key={i}>
-                <mesh position={[px, totalH / 2, pz]} castShadow receiveShadow>
-                  <boxGeometry args={[POST, totalH, POST]} />
+                <mesh position={[px, postH / 2, pz]} castShadow receiveShadow>
+                  <boxGeometry args={[POST, postH, POST]} />
                   <meshStandardMaterial map={upTex} metalness={0.3} roughness={0.52} />
                 </mesh>
                 <mesh position={[px, 0.03, pz]} castShadow>
@@ -332,7 +334,8 @@ function Scene({ placed, maxLevel, maxPosition, zones, selectedId, onSelect, res
   const rackHalfLen = halfW
   const backZ = -(rackHalfLen + 1.35)
   const frontZ = 8.5
-  const roomHalfX = Math.max(aisleHalf + 2 * dz + 2.2, 4.4)
+  // Side walls sit just behind the rack backs, like the real narrow aisle.
+  const roomHalfX = aisleHalf + 2 * dz + 0.12
   const roomH = totalH + 1.15
   const fanZ = -(rackHalfLen + 0.55)
 
