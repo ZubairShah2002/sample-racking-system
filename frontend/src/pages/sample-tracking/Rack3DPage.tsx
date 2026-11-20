@@ -31,14 +31,16 @@ interface Placed extends RackOccupancy {
   z: number
 }
 
-function layout(locations: RackOccupancy[], maxPosition: number, zones: string[]) {
-  const zoneIndex = new Map(zones.map((z, i) => [z, i]))
-  const zoneSpan = SLOT_D + 1.6
+// The right (main) rack holds bays 1..RIGHT_BAYS; the left rack holds the rest.
+const RIGHT_BAYS = 3
+
+// Lay a rack's locations out in its own local space: x by bay (centred), y by level.
+function placeSlots(locations: RackOccupancy[], bays: number, firstPos: number): Placed[] {
   return locations.map((l) => ({
     ...l,
-    x: (l.position - (maxPosition + 1) / 2) * (SLOT_W + GAP_X),
+    x: ((l.position - firstPos + 1) - (bays + 1) / 2) * (SLOT_W + GAP_X),
     y: (l.level - 1) * (SLOT_H + GAP_Y) + SLOT_H / 2 + BASE_Y,
-    z: (zoneIndex.get(l.zone) ?? 0) * zoneSpan,
+    z: 0,
   })) as Placed[]
 }
 
@@ -282,12 +284,10 @@ function Fan({ position }: { position: [number, number, number] }) {
   )
 }
 
-// The live rack faces -x, so zoom in from the aisle side.
-const CAM_DIR = new THREE.Vector3(-1, 0.4, 0.55).normalize()
 
 function CameraRig({ controls, focus, focusKey, resetNonce }: {
   controls: React.RefObject<CameraControlsImpl | null>
-  focus: [number, number, number] | null
+  focus: { target: [number, number, number]; dir: [number, number, number] } | null
   focusKey: string | null
   resetNonce: number
 }) {
@@ -303,11 +303,11 @@ function CameraRig({ controls, focus, focusKey, resetNonce }: {
   useEffect(() => {
     const cc = controls.current
     if (!cc || !focus) return
-    const [cx, cy, cz] = focus
+    const [cx, cy, cz] = focus.target
     const fov = (camera as THREE.PerspectiveCamera).fov
     const size = Math.max(SLOT_W, SLOT_H, SLOT_D)
     const dist = Math.max(2, (size / 2) / Math.tan((fov * Math.PI) / 360) * 1.85)
-    const dir = CAM_DIR.clone().multiplyScalar(dist)
+    const dir = new THREE.Vector3(...focus.dir).normalize().multiplyScalar(dist)
     void cc.setLookAt(cx + dir.x, cy + dir.y, cz + dir.z, cx, cy, cz, true)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusKey])
@@ -317,21 +317,21 @@ function CameraRig({ controls, focus, focusKey, resetNonce }: {
   return null
 }
 
-function Scene({ placed, maxLevel, maxPosition, zones, selectedId, onSelect, resetNonce }: {
-  placed: Placed[]; maxLevel: number; maxPosition: number; zones: string[]
+function Scene({ rightSlots, leftSlots, rightBays, leftBays, maxLevel, zones, selectedId, onSelect, resetNonce }: {
+  rightSlots: Placed[]; leftSlots: Placed[]; rightBays: number; leftBays: number
+  maxLevel: number; zones: string[]
   selectedId: string | null; onSelect: (id: string) => void; resetNonce: number
 }) {
   const controls = useRef<CameraControlsImpl>(null)
   const { upTex, chipTex } = useMemo(() => ({ upTex: makeUprightTexture(), chipTex: makeChipTexture() }), [])
   const totalH = maxLevel * (SLOT_H + GAP_Y) + BASE_Y
   const dz = SLOT_D / 2 + 0.12
-  const halfW = (maxPosition * (SLOT_W + GAP_X)) / 2 + 0.2
 
   // Aisle runs along Z; the two racks face each other across it.
   const aisleHalf = 0.95
   const leftRackX = -(aisleHalf + dz)
   const rightRackX = aisleHalf + dz
-  const rackHalfLen = halfW
+  const rackHalfLen = (Math.max(rightBays, leftBays) * (SLOT_W + GAP_X)) / 2 + 0.2
   const backZ = -(rackHalfLen + 1.35)
   const frontZ = 8.5
   // Side walls sit just behind the rack backs, like the real narrow aisle.
@@ -339,16 +339,19 @@ function Scene({ placed, maxLevel, maxPosition, zones, selectedId, onSelect, res
   const roomH = totalH + 1.15
   const fanZ = -(rackHalfLen + 0.55)
 
-  // The live rack is rotated -90° about Y and moved to rightRackX, so a slot's
-  // local (x,y,z) maps to world (rightRackX - z, y, x) before the group offset.
-  const sel = placed.find((p) => p.id === selectedId)
-  const focus: [number, number, number] | null = sel
-    ? [rightRackX - sel.z, sel.y - totalH / 2, sel.x]
-    : null
+  // Focus: find the selected slot in either rack and approach from the aisle side.
+  // Right rack (rot -90°): local (x,y,0) -> world (rightRackX, y, x).
+  // Left rack  (rot +90°): local (x,y,0) -> world (leftRackX,  y, -x).
+  const selRight = rightSlots.find((p) => p.id === selectedId)
+  const selLeft = leftSlots.find((p) => p.id === selectedId)
+  const focus: { target: [number, number, number]; dir: [number, number, number] } | null = selRight
+    ? { target: [rightRackX, selRight.y - totalH / 2, selRight.x], dir: [-1, 0.4, 0.55] }
+    : selLeft
+      ? { target: [leftRackX, selLeft.y - totalH / 2, -selLeft.x], dir: [1, 0.4, 0.55] }
+      : null
 
   // Defer the slot labels by one frame so every <Html> mounts after the canvas
-  // DOM target is connected. Without this the very first label (A1-01-10) loses
-  // its portal and never appears.
+  // DOM target is connected. Without this the very first label loses its portal.
   const [labelsReady, setLabelsReady] = useState(false)
   useEffect(() => {
     const id = requestAnimationFrame(() => setLabelsReady(true))
@@ -365,14 +368,17 @@ function Scene({ placed, maxLevel, maxPosition, zones, selectedId, onSelect, res
 
       <group position={[0, -totalH / 2, 0]}>
         <Room halfX={roomHalfX} roomH={roomH} backZ={backZ} frontZ={frontZ} />
-        {/* LEFT rack — frame only, no locations assigned yet, facing the aisle (+x) */}
+        {/* LEFT rack — bays 4-5 (A1-04, A1-05), facing the aisle (+x) */}
         <group position={[leftRackX, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
-          <RackFrame maxLevel={maxLevel} maxPosition={maxPosition} zones={zones} upTex={upTex} chipTex={chipTex} />
+          <RackFrame maxLevel={maxLevel} maxPosition={leftBays} zones={zones} upTex={upTex} chipTex={chipTex} />
+          {labelsReady && leftSlots.map((loc) => (
+            <Slot key={loc.id} loc={loc} selected={selectedId === loc.id} onSelect={onSelect} />
+          ))}
         </group>
-        {/* RIGHT rack — the live one (with locations), facing the aisle (-x) */}
+        {/* RIGHT rack — bays 1-3 (A1-01..A1-03), facing the aisle (-x) */}
         <group position={[rightRackX, 0, 0]} rotation={[0, -Math.PI / 2, 0]}>
-          <RackFrame maxLevel={maxLevel} maxPosition={maxPosition} zones={zones} upTex={upTex} chipTex={chipTex} />
-          {labelsReady && placed.map((loc) => (
+          <RackFrame maxLevel={maxLevel} maxPosition={rightBays} zones={zones} upTex={upTex} chipTex={chipTex} />
+          {labelsReady && rightSlots.map((loc) => (
             <Slot key={loc.id} loc={loc} selected={selectedId === loc.id} onSelect={onSelect} />
           ))}
         </group>
@@ -394,16 +400,25 @@ export function Rack3DPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [resetNonce, setResetNonce] = useState(0)
 
-  const placed = useMemo(
-    () => (data ? layout(data.locations, data.maxPosition, data.zones) : []),
-    [data],
-  )
+  const { rightSlots, leftSlots, rightBays, leftBays } = useMemo(() => {
+    if (!data) return { rightSlots: [] as Placed[], leftSlots: [] as Placed[], rightBays: 3, leftBays: 2 }
+    const right = data.locations.filter((l) => l.position <= RIGHT_BAYS)
+    const left = data.locations.filter((l) => l.position > RIGHT_BAYS)
+    const rBays = Math.max(1, Math.min(RIGHT_BAYS, data.maxPosition))
+    const lBays = Math.max(2, data.maxPosition - RIGHT_BAYS)
+    return {
+      rightSlots: placeSlots(right, rBays, 1),
+      leftSlots: placeSlots(left, lBays, RIGHT_BAYS + 1),
+      rightBays: rBays,
+      leftBays: lBays,
+    }
+  }, [data])
 
   useEffect(() => {
-    if (!focusCode || placed.length === 0) return
-    const match = placed.find((p) => p.code.toUpperCase() === focusCode.toUpperCase())
+    if (!focusCode) return
+    const match = [...rightSlots, ...leftSlots].find((p) => p.code.toUpperCase() === focusCode.toUpperCase())
     if (match) setSelectedId(match.id)
-  }, [focusCode, placed])
+  }, [focusCode, rightSlots, leftSlots])
 
   function backToFull() {
     setSelectedId(null)
@@ -433,9 +448,11 @@ export function Rack3DPage() {
               <Canvas shadows dpr={[1, 2]} camera={{ position: HOME_POS, fov: 45 }}>
                 <Suspense fallback={null}>
                   <Scene
-                    placed={placed}
+                    rightSlots={rightSlots}
+                    leftSlots={leftSlots}
+                    rightBays={rightBays}
+                    leftBays={leftBays}
                     maxLevel={data.maxLevel}
-                    maxPosition={data.maxPosition}
                     zones={data.zones}
                     selectedId={selectedId}
                     onSelect={setSelectedId}

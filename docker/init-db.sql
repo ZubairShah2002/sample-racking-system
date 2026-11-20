@@ -361,7 +361,16 @@ VALUES
     (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', 'A1-03-10', 'A1', 1, 3, 1003, 4, TRUE, 'system', NOW()),
     (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', 'A1-03-20', 'A1', 2, 3, 2003, 4, TRUE, 'system', NOW()),
     (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', 'A1-03-30', 'A1', 3, 3, 3003, 4, TRUE, 'system', NOW()),
-    (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', 'A1-03-40', 'A1', 4, 3, 4003, 4, TRUE, 'system', NOW())
+    (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', 'A1-03-40', 'A1', 4, 3, 4003, 4, TRUE, 'system', NOW()),
+    -- Second physical rack (left), bays 4 and 5.
+    (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', 'A1-04-10', 'A1', 1, 4, 1004, 4, TRUE, 'system', NOW()),
+    (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', 'A1-04-20', 'A1', 2, 4, 2004, 4, TRUE, 'system', NOW()),
+    (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', 'A1-04-30', 'A1', 3, 4, 3004, 4, TRUE, 'system', NOW()),
+    (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', 'A1-04-40', 'A1', 4, 4, 4004, 4, TRUE, 'system', NOW()),
+    (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', 'A1-05-10', 'A1', 1, 5, 1005, 4, TRUE, 'system', NOW()),
+    (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', 'A1-05-20', 'A1', 2, 5, 2005, 4, TRUE, 'system', NOW()),
+    (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', 'A1-05-30', 'A1', 3, 5, 3005, 4, TRUE, 'system', NOW()),
+    (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', 'A1-05-40', 'A1', 4, 5, 4005, 4, TRUE, 'system', NOW())
 ON CONFLICT (tenant_id, code) DO NOTHING;
 
 -- Seed: default sample tracking settings for the default tenant.
