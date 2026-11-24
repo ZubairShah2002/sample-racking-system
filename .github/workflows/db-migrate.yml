@@ -1,0 +1,72 @@
+name: Migrate Render DB to Neon (one-time)
+
+# One-time copy of the OLD Render database into Neon.
+# It dumps the entire Render database and restores it into Neon exactly as-is,
+# so every sample, location, movement, test and user comes across with all
+# their relationships intact.
+#
+# SETUP — add TWO repository secrets first
+#   GitHub → repo → Settings → Secrets and variables → Actions → New repository secret
+#     1) OLD_RENDER_DB_URL  = the Render database's EXTERNAL connection string
+#        (Render → samplerack-db → Connect → "External Database URL")
+#     2) NEON_DATABASE_URL  = your Neon DIRECT (unpooled) connection string
+#        (same one used for backups)
+#
+# Then run it:  Actions tab → "Migrate Render DB to Neon (one-time)" → Run workflow
+#
+# Safe ordering: it dumps Render FIRST and only clears/loads Neon if the dump
+# succeeded and is non-empty. If the dump fails, Neon is left untouched.
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    env:
+      OLD: ${{ secrets.OLD_RENDER_DB_URL }}
+      NEW: ${{ secrets.NEON_DATABASE_URL }}
+      IMG: postgres:17-alpine
+    steps:
+      - name: Check secrets
+        run: |
+          if [ -z "$OLD" ] || [ -z "$NEW" ]; then
+            echo "::error::Add both secrets: OLD_RENDER_DB_URL and NEON_DATABASE_URL."
+            exit 1
+          fi
+
+      - name: Dump the old Render database
+        run: |
+          set -euo pipefail
+          docker run --rm -e PGCONNECT_TIMEOUT=30 "$IMG" \
+            pg_dump "$OLD" --no-owner --no-privileges > dump.sql
+          LINES=$(wc -l < dump.sql)
+          echo "Dump captured: $LINES lines"
+          # Sanity: must be non-empty and contain our data tables.
+          test -s dump.sql
+          grep -q "sample_tracking" dump.sql || { echo "::error::Dump has no app data — check OLD_RENDER_DB_URL."; exit 1; }
+
+      - name: Show what will be copied
+        run: |
+          echo "Row counts in the OLD Render database:"
+          docker run --rm "$IMG" psql "$OLD" -c "select 'samples' AS table, count(*) from sample_tracking.samples union all select 'rack_locations', count(*) from sample_tracking.rack_locations union all select 'users', count(*) from identity.users union all select 'testing_records', count(*) from sample_tracking.testing_records union all select 'movements', count(*) from sample_tracking.sample_movements;"
+
+      - name: Clear Neon app schemas (only reached if dump succeeded)
+        run: |
+          set -euo pipefail
+          docker run --rm "$IMG" psql "$NEW" -v ON_ERROR_STOP=1 \
+            -c "DROP SCHEMA IF EXISTS sample_tracking CASCADE; DROP SCHEMA IF EXISTS identity CASCADE; DROP SCHEMA IF EXISTS shared CASCADE;"
+
+      - name: Restore into Neon
+        run: |
+          set -euo pipefail
+          docker run --rm -i "$IMG" psql "$NEW" -v ON_ERROR_STOP=1 < dump.sql
+
+      - name: Verify Neon now has the data
+        run: |
+          echo "Row counts in Neon AFTER migration:"
+          docker run --rm "$IMG" psql "$NEW" -c "select 'samples' AS table, count(*) from sample_tracking.samples union all select 'rack_locations', count(*) from sample_tracking.rack_locations union all select 'users', count(*) from identity.users union all select 'testing_records', count(*) from sample_tracking.testing_records union all select 'movements', count(*) from sample_tracking.sample_movements;"
+          echo "Migration complete."
