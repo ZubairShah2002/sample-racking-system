@@ -38,12 +38,15 @@ jobs:
       NEW: ${{ github.event.inputs.new_url || secrets.NEON_DATABASE_URL }}
       IMG: postgres:17-alpine
     steps:
-      - name: Check secrets
+      - name: Check and sanitize secrets
         run: |
           if [ -z "$OLD" ] || [ -z "$NEW" ]; then
             echo "::error::Add both secrets: OLD_RENDER_DB_URL and NEON_DATABASE_URL."
             exit 1
           fi
+          # Strip any stray carriage returns / newlines a copy-paste may have added.
+          echo "OLD=$(printf '%s' "$OLD" | tr -d '[:space:]')" >> "$GITHUB_ENV"
+          echo "NEW=$(printf '%s' "$NEW" | tr -d '[:space:]')" >> "$GITHUB_ENV"
 
       - name: Dump the old Render database
         run: |
