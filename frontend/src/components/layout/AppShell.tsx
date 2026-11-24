@@ -22,6 +22,7 @@ import {
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
 import { useSampleTrackingAccess } from '@/features/sampleTracking/useAccess'
+import { ChatAssistant } from '@/components/assistant/ChatAssistant'
 import { cn } from '@/lib/cn'
 import styles from './AppShell.module.css'
 
@@ -159,6 +160,8 @@ export function AppShell() {
           <Outlet />
         </main>
       </div>
+
+      <ChatAssistant />
     </div>
   )
 }
