@@ -124,8 +124,7 @@ function LocationDetailPanel({ locationId, isAdmin, canWrite }: { locationId: st
       {data.description && <p className={shared.muted} style={{ marginTop: 4 }}>{data.description}</p>}
       <div style={{ margin: '12px 0', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <span className={shared.muted}>
-          {data.sampleCount}/{data.capacity} used · {data.availableCapacity} available
-          {data.availableCapacity <= 0 ? ' · Full' : ''}
+          {data.sampleCount} sample{data.sampleCount === 1 ? '' : 's'} stored
         </span>
       </div>
 
@@ -178,16 +177,14 @@ function AddLocationModal({ onClose }: { onClose: () => void }) {
   const create = useCreateRackLocation()
   const [code, setCode] = useState('')
   const [description, setDescription] = useState('')
-  const [capacity, setCapacity] = useState('4')
   return (
     <Modal open title="Add Rack Location" onClose={onClose}>
-      <p className={shared.muted}>Use the ZONE-BAY-SHELF format, e.g. A1-02-30 (bay 02, shelf 30). Bay and shelf are derived from the code.</p>
+      <p className={shared.muted}>Use the ZONE-BAY-SHELF format, e.g. A1-02-30 (bay 02, shelf 30). Bay and shelf are derived from the code. Each location holds unlimited samples.</p>
       <Input label="Location Code" required value={code} onChange={(e) => setCode(e.target.value)} placeholder="A1-02-30" />
       <Input label="Description" value={description} onChange={(e) => setDescription(e.target.value)} />
-      <Input label="Capacity (max samples)" type="number" min="1" value={capacity} onChange={(e) => setCapacity(e.target.value)} />
       <div className={shared.formActions}>
         <Button variant="secondary" onClick={onClose}>Cancel</Button>
-        <Button disabled={!code || create.isPending} onClick={() => create.mutate({ code, description: description || null, capacity: Number(capacity) || 4 }, {
+        <Button disabled={!code || create.isPending} onClick={() => create.mutate({ code, description: description || null, capacity: 0 }, {
           onSuccess: () => { toast({ type: 'success', title: 'Location added' }); onClose() },
           onError: (e) => toast({ type: 'error', title: 'Failed', message: apiErrorMessage(e) }),
         })}>Add Location</Button>

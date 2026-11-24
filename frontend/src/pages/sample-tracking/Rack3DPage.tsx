@@ -86,7 +86,8 @@ function Slot({ loc, selected, onSelect }: { loc: Placed; selected: boolean; onS
   const [hover, setHover] = useState(false)
   const color = OCCUPANCY_COLORS[loc.occupancyState] ?? OCCUPANCY_COLORS.Occupied
   const empty = loc.occupancyState === 'Available'
-  const fill = loc.capacity > 0 ? Math.min(1, loc.sampleCount / loc.capacity) : 0
+  // Unlimited capacity: deepen the colour a little with more samples, but no cap.
+  const fill = loc.sampleCount > 0 ? Math.min(1, loc.sampleCount / 4) : 0
   const opacity = empty ? 0.14 : 0.4 + 0.4 * fill
   const sampleBoxes = Math.min(loc.sampleCount, 4)
 
@@ -495,8 +496,8 @@ function Rack3DDetail({ locationId, canWrite, onBack }: { locationId: string | n
   }
   if (!data) return <div className={shared.panel}>Loading…</div>
 
-  const full = data.availableCapacity <= 0
-  const fillLabel = data.sampleCount === 0 ? 'Empty' : full ? 'Full' : 'Partially occupied'
+  // Locations hold unlimited samples — show the count, not a cap.
+  const fillLabel = data.sampleCount === 0 ? 'Empty' : 'Occupied'
 
   return (
     <div className={shared.panel}>
@@ -509,7 +510,7 @@ function Rack3DDetail({ locationId, canWrite, onBack }: { locationId: string | n
       </p>
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '8px 0 4px' }}>
         <span className={shared.muted} style={{ fontSize: 'var(--text-xs)' }}>
-          {fillLabel} · {data.sampleCount}/{data.capacity} used · {data.availableCapacity} available
+          {fillLabel} · {data.sampleCount} sample{data.sampleCount === 1 ? '' : 's'} stored
         </span>
       </div>
       {data.samples.length === 0 ? (
@@ -532,7 +533,7 @@ function Rack3DDetail({ locationId, canWrite, onBack }: { locationId: string | n
           ))}
         </div>
       )}
-      {canWrite && data.isActive && !full && (
+      {canWrite && data.isActive && (
         <div style={{ marginTop: 12 }}>
           <Button fullWidth onClick={() => navigate('/sample-tracking/register')}>Register sample here</Button>
         </div>
