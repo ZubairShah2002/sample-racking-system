@@ -7,11 +7,17 @@
 # choose "New +" → "Blueprint", pick this repo, and click "Apply".
 # Free tiers are used; see the notes at the bottom for production.
 
-databases:
-  - name: samplerack-db
-    databaseName: samplerack
-    plan: free
-    postgresMajorVersion: "16"
+# Database: this app now uses an external Neon Postgres (durable free tier —
+# data is not deleted on a timer). The DATABASE_URL is set manually on the
+# samplerack-api service (see below). The old Render-managed database block is
+# left here commented out; delete the unused "samplerack-db" in the Render
+# dashboard once you've confirmed Neon is working.
+#
+# databases:
+#   - name: samplerack-db
+#     databaseName: samplerack
+#     plan: free
+#     postgresMajorVersion: "16"
 
 services:
   # ---- Backend API (.NET 8, Docker) ----
@@ -26,9 +32,13 @@ services:
     healthCheckPath: /
     envVars:
       - key: DATABASE_URL
-        fromDatabase:
-          name: samplerack-db
-          property: connectionString
+        sync: false                  # set in the dashboard to your Neon DIRECT
+                                     # (unpooled) connection string, e.g.
+                                     # postgresql://USER:PASS@ep-xxx.REGION.aws.neon.tech/neondb?sslmode=require
+                                     # Use the UNPOOLED/direct URL (host has no
+                                     # "-pooler"): this app keeps its own
+                                     # connection pool and runs schema init on
+                                     # startup, which wants a direct connection.
       - key: Jwt__Key
         generateValue: true          # Render generates a strong random secret
       - key: Jwt__Issuer
@@ -67,8 +77,12 @@ services:
 
 # Notes
 # -----
-# • Free PostgreSQL expires ~90 days after creation and free web services sleep
-#   after inactivity (first request after sleep is slow). For an always-on site,
-#   upgrade samplerack-api and samplerack-db to a paid plan in the dashboard.
+# • Database is Neon (external). Neon's free tier does NOT delete your data on a
+#   timer; idle only suspends compute, which resumes automatically on the next
+#   query. Keep regular backups regardless (pg_dump).
+# • Set DATABASE_URL on samplerack-api in the Render dashboard to your Neon
+#   DIRECT (unpooled) connection string. The backend parses the URL's sslmode.
+# • Free web services still sleep after inactivity (first request after sleep is
+#   slow). Upgrade samplerack-api to a paid plan for an always-on site.
 # • If you leave Seed__AdminPassword unset, the app falls back to the default in
 #   appsettings.json (admin / Admin@12345) — change it on first login either way.

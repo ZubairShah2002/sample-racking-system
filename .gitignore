@@ -28,3 +28,4 @@ dist-ssr/
 # Runtime
 storage/
 *.log
+.neon
