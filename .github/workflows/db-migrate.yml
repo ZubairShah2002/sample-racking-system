@@ -18,7 +18,14 @@ name: Migrate Render DB to Neon (one-time)
 # succeeded and is non-empty. If the dump fails, Neon is left untouched.
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      old_url:
+        description: Old Render external DB URL (leave blank to use the OLD_RENDER_DB_URL secret)
+        required: false
+      new_url:
+        description: Neon direct DB URL (leave blank to use the NEON_DATABASE_URL secret)
+        required: false
 
 permissions:
   contents: read
@@ -27,8 +34,8 @@ jobs:
   migrate:
     runs-on: ubuntu-latest
     env:
-      OLD: ${{ secrets.OLD_RENDER_DB_URL }}
-      NEW: ${{ secrets.NEON_DATABASE_URL }}
+      OLD: ${{ github.event.inputs.old_url || secrets.OLD_RENDER_DB_URL }}
+      NEW: ${{ github.event.inputs.new_url || secrets.NEON_DATABASE_URL }}
       IMG: postgres:17-alpine
     steps:
       - name: Check secrets
