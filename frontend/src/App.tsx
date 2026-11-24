@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { AppShell } from '@/components/layout/AppShell'
 import LoginPage from '@/pages/LoginPage'
+import AssistantPage from '@/pages/AssistantPage'
 
 import { SampleDashboardPage } from '@/pages/sample-tracking/SampleDashboardPage'
 import { Rack3DPage } from '@/pages/sample-tracking/Rack3DPage'
@@ -28,6 +29,15 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+
+      <Route
+        path="/assistant"
+        element={
+          <ProtectedRoute>
+            <AssistantPage />
+          </ProtectedRoute>
+        }
+      />
 
       <Route
         path="/sample-tracking"

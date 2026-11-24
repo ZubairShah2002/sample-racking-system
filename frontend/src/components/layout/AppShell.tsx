@@ -16,6 +16,7 @@ import {
   QrCode,
   ScanLine,
   Settings,
+  Sparkles,
   Trash2,
   Users,
   Warehouse,
@@ -40,6 +41,7 @@ const NAV: { section: string; items: NavItem[] }[] = [
     section: 'Overview',
     items: [
       { to: '/sample-tracking/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
+      { to: '/assistant', label: 'AI Assistant', icon: <Sparkles size={18} /> },
       { to: '/sample-tracking/rack-3d', label: '3D Rack', icon: <Grid3x3 size={18} /> },
       { to: '/sample-tracking/rack', label: 'Rack Overview', icon: <Warehouse size={18} /> },
     ],
