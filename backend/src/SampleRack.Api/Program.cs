@@ -172,6 +172,20 @@ static string BuildNpgsqlConnectionString(string databaseUrl)
         // connects over internal networks that don't — robust for both.
         SslMode = Npgsql.SslMode.Prefer,
     };
+
+    // Honor an explicit sslmode from the URL query. Managed Postgres providers
+    // such as Neon and Supabase append "?sslmode=require"; respecting it avoids
+    // any TLS negotiation ambiguity while leaving Prefer as the default.
+    foreach (var part in uri.Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries))
+    {
+        var kv = part.Split('=', 2);
+        if (kv.Length == 2 && kv[0].Equals("sslmode", StringComparison.OrdinalIgnoreCase))
+        {
+            var value = Uri.UnescapeDataString(kv[1]).Replace("-", string.Empty);
+            if (Enum.TryParse<Npgsql.SslMode>(value, ignoreCase: true, out var mode))
+                csb.SslMode = mode;
+        }
+    }
     return csb.ConnectionString;
 }
 
