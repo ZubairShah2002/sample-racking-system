@@ -32,11 +32,6 @@ export default function LoginPage() {
         },
         result.token,
       )
-      try {
-        sessionStorage.setItem('sr_greet', '1')
-      } catch {
-        /* storage may be unavailable (private mode) */
-      }
       toast({ type: 'success', title: `Welcome back, ${result.user.fullName}` })
       navigate('/sample-tracking/dashboard', { replace: true })
     } catch (err: unknown) {
