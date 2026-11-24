@@ -49,7 +49,7 @@ export function SampleDashboardPage() {
   return (
     <div className={styles.page}>
       <PageHeader
-        title="Sample Tracking Dashboard"
+        title="Shah Sample Tracking Dashboard"
         subtitle="Live overview of QC sample storage, testing and aging"
       />
 
