@@ -1,0 +1,22 @@
+name: Inspect sample-location links (diagnostic)
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    env:
+      OLD: ${{ secrets.OLD_RENDER_DB_URL }}
+      IMG: postgres:17-alpine
+    steps:
+      - name: Render — sample to location mapping
+        run: |
+          OLD="$(printf '%s' "$OLD" | tr -d '[:space:]')"
+          echo "=== Are Render's sample location IDs valid? ==="
+          docker run --rm "$IMG" psql "$OLD" -c "select count(*) filter (where rl.id is not null) as valid_links, count(*) filter (where rl.id is null and s.rack_location_id is not null) as broken_links, count(*) filter (where s.rack_location_id is null) as no_location from sample_tracking.samples s left join sample_tracking.rack_locations rl on rl.id = s.rack_location_id;"
+          echo "=== Each sample and the location CODE it should be at ==="
+          docker run --rm "$IMG" psql "$OLD" -A -F',' -c "select s.sample_code, coalesce(rl.code,'(MISSING)') as location_code from sample_tracking.samples s left join sample_tracking.rack_locations rl on rl.id = s.rack_location_id order by s.sample_code;"
