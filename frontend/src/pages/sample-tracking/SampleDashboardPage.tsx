@@ -121,9 +121,6 @@ export function SampleDashboardPage() {
             <ChartCard title="Samples by Product Category">
               <BarList data={data.samplesByCategory} />
             </ChartCard>
-            <ChartCard title="Samples by Department">
-              <BarList data={data.samplesByDepartment} />
-            </ChartCard>
           </div>
         )
       )}
